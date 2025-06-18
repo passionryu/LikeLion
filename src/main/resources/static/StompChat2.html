@@ -141,7 +141,7 @@
             document.getElementById("enterRow").classList.add("hidden");
             document.getElementById("roomList").classList.add("hidden");
 
-            //    document.getElementById("whisperRow").classList.remove("hidden"); // ✅ 여기!  닉네임 작성
+            document.getElementById("whisperRow").classList.remove("hidden"); // ✅ 여기!  닉네임 작성
 
 
             stompClient.subscribe(`/topic/${roomId}`, function (chat) {

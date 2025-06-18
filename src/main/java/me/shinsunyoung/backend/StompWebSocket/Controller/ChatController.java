@@ -1,9 +1,8 @@
 package me.shinsunyoung.backend.StompWebSocket.Controller;
 
 import lombok.RequiredArgsConstructor;
-import me.shinsunyoung.backend.PureWebsocket.DTO.ChatMessage;
+import me.shinsunyoung.backend.StompWebSocket.DTO.ChatMessage;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
@@ -24,9 +23,16 @@ public class ChatController {
     // 동적으로 방 생성
     @MessageMapping("/chat.sendMessage")
     public void sendmessage(ChatMessage message){
+        // 귓속말
+        //내 아이디로 귓속말경로를 활성화 함
+        if(message.getTo() != null && !message.getTo().isEmpty()){
+            template.convertAndSendToUser(message.getTo(),"/queue/private", message);
+        }else{
+            // 일반 메시지
+            //message에서 roomId를 추출해서 해당 roomId를 구독하고있는 클라이언트에게 메세지를 전달
+            template.convertAndSend("/topic/"+message.getRoomId(),message);
+        }
 
-        // message 에서 roomId를 추출해서 해당 roomId를 구독하고 있는 클라이언트들에게 메시지를 전달
-        template.convertAndSend("/topic/"+message.getRoomId(), message);
     }
 
 }
