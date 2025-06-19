@@ -1,7 +1,10 @@
 package me.shinsunyoung.backend.StompWebSocket.Controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import me.shinsunyoung.backend.StompWebSocket.DTO.ChatMessage;
+import me.shinsunyoung.backend.StompWebSocket.Redis.RedisPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -13,6 +16,9 @@ public class ChatController {
 
     @Value("${PROJECT_NAME:web Server}")
     private String instnsNameName;
+
+    private final RedisPublisher redisPublisher;
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     // 단일 브로드 캐스트 (방을 동적으로 생성이 안됨)
 //    @MessageMapping("/chat.sendMessage") // 클라이언트 -> 서버
@@ -26,20 +32,24 @@ public class ChatController {
 
     // 동적으로 방 생성
     @MessageMapping("/chat.sendMessage")
-    public void sendmessage(ChatMessage message){
+    public void sendmessage(ChatMessage message) throws JsonProcessingException {
 
         message.setMessage(instnsNameName +  " " + message.getMessage());
-
         // 귓속말
         //내 아이디로 귓속말경로를 활성화 함
-        if(message.getTo() != null && !message.getTo().isEmpty()){
-            template.convertAndSendToUser(message.getTo(),"/queue/private", message);
-        }else{
-            // 일반 메시지
-            //message에서 roomId를 추출해서 해당 roomId를 구독하고있는 클라이언트에게 메세지를 전달
-            template.convertAndSend("/topic/"+message.getRoomId(),message);
-        }
+//        if(message.getTo() != null && !message.getTo().isEmpty()){
+//            template.convertAndSendToUser(message.getTo(),"/queue/private", message);
+//        }else{
+//            // 일반 메시지
+//            //message에서 roomId를 추출해서 해당 roomId를 구독하고있는 클라이언트에게 메세지를 전달
+//            template.convertAndSend("/topic/"+message.getRoomId(),message);
+//        }
+
+        String channel = "room." + message.getRoomId();
+        String msg = objectMapper.writeValueAsString(message);
+        redisPublisher.publish(channel, msg);
 
     }
+
 
 }
