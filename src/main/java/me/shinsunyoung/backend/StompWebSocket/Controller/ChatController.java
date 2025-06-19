@@ -2,6 +2,7 @@ package me.shinsunyoung.backend.StompWebSocket.Controller;
 
 import lombok.RequiredArgsConstructor;
 import me.shinsunyoung.backend.StompWebSocket.DTO.ChatMessage;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
@@ -9,6 +10,9 @@ import org.springframework.stereotype.Controller;
 @Controller
 @RequiredArgsConstructor
 public class ChatController {
+
+    @Value("${PROJECT_NAME:web Server}")
+    private String instnsNameName;
 
     // 단일 브로드 캐스트 (방을 동적으로 생성이 안됨)
 //    @MessageMapping("/chat.sendMessage") // 클라이언트 -> 서버
@@ -23,6 +27,9 @@ public class ChatController {
     // 동적으로 방 생성
     @MessageMapping("/chat.sendMessage")
     public void sendmessage(ChatMessage message){
+
+        message.setMessage(instnsNameName +  " " + message.getMessage());
+
         // 귓속말
         //내 아이디로 귓속말경로를 활성화 함
         if(message.getTo() != null && !message.getTo().isEmpty()){
