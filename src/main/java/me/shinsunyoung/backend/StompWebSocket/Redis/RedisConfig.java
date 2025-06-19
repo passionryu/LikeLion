@@ -20,6 +20,7 @@ public class RedisConfig {
         Container.setConnectionFactory(redisConnectionFactory);
 
         Container.addMessageListener(new MessageListenerAdapter(redisSubscriber), new PatternTopic("room.*"));
+        Container.addMessageListener(new MessageListenerAdapter(redisSubscriber), new PatternTopic("private.*")); //귓속말
 
         return Container;
     }

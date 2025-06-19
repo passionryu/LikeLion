@@ -18,14 +18,24 @@ public class RedisSubscriber implements MessageListener {
     @Override
     public void onMessage(Message message, byte[] pattern) {
 
-        try{
-            String msgBody  = new String(message.getBody());
-            ChatMessage chatMessage = objectMapper.convertValue(msgBody, ChatMessage.class);
-            simpMessagingTemplate.convertAndSend("/topic/room"+ chatMessage.getRoomId(), chatMessage);
-        }catch (Exception e){
+        try {
+            String msgBody = new String(message.getBody());
+            ChatMessage chatMessage = objectMapper.readValue(msgBody, ChatMessage.class);
+
+
+            if (chatMessage.getTo() != null && !chatMessage.getTo().isEmpty()) {
+                // 귓속말
+                simpMessagingTemplate.convertAndSendToUser(chatMessage.getTo(), "/queue/private", chatMessage);
+            } else {
+                // 일반 메시지
+                simpMessagingTemplate.convertAndSend("/topic/room." + chatMessage.getRoomId(), chatMessage);
+
+
+            }
+        }
+        catch (Exception e) {
 
         }
-
 
     }
 }
