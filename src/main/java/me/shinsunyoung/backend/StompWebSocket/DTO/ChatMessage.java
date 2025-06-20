@@ -16,4 +16,9 @@ public class ChatMessage {
 
     private String to; //귓속말 한 상대
     private String roomId; // 방 ID
+
+    public ChatMessage(String from, String message) {
+        this.from = from;
+        this.message = message;
+    }
 }
