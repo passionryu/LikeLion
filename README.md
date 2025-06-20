@@ -7,7 +7,7 @@
 * 웹 소켓을 통한 채팅 페이지  
 * 방 만들기 기능 
 ## 6월 19일 
-* Redis를 통한 3개의 WebSocket 채팅 서버 메시지 동기화 
--> Topic에 Redis pub/sub 개념을 적용하여 채팅방 구현 
+* Redis를 통한 3개의 WebSocket 채팅 서버 메시지 동기화 (Topic에 Redis pub/sub 개념을 적용하여 채팅방 구현) 
 ## 6월 20일 
 * Gpt api key와 WebSocket을 통한 AI 챗봇 서버 구현 
+* Jenkins CI/CD 파이프 라인 구축 완료 
