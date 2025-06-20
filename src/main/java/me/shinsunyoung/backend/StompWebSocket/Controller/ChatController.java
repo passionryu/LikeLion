@@ -18,7 +18,7 @@ public class ChatController {
     //서버가 클라이언트에게 수동으로 메세지를 보낼 수 있도록 하는 클래스
     private final SimpMessagingTemplate template;
     private final RedisPublisher redisPublisher;
-    private ObjectMapper objectMapper  = new ObjectMapper();
+    private ObjectMapper objectMapper = new ObjectMapper();
     private final GPTService gptService;
 
     @Value("${PROJECT_NAME:web Server}")
@@ -42,20 +42,20 @@ public class ChatController {
     public void sendmessage(ChatMessage message) throws JsonProcessingException {
 
         // 채팅 앞에 몇번 서버인지 조회
-        message.setMessage(instansName+" "+message.getMessage());
+        message.setMessage(instansName + " " + message.getMessage());
 
         String channel = null;
         String msg = null;
 
         if (message.getTo() != null && !message.getTo().isEmpty()) {
             // 귓속말
-            channel = "private."+message.getRoomId();
+            channel = "private." + message.getRoomId();
             msg = objectMapper.writeValueAsString(message);
         } else {
             // 일반 메시지
-            channel = "room."+message.getRoomId();
+            channel = "room." + message.getRoomId();
             msg = objectMapper.writeValueAsString(message);
         }
-        redisPublisher.publish(channel,msg);
+        redisPublisher.publish(channel, msg);
     }
 }
