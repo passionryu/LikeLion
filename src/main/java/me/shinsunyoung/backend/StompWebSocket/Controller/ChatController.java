@@ -26,7 +26,7 @@ public class ChatController {
 
     //단일 브로드캐스트 (방을 동적으로 생성이 안됨)
     @MessageMapping("/gpt")
-    public ChatMessage sendMessageGPT(ChatMessage message) throws Exception {
+    public void sendMessageGPT(ChatMessage message) throws Exception {
 
         template.convertAndSend("/topic/gpt", message);
 
@@ -36,7 +36,6 @@ public class ChatController {
 
         template.convertAndSend("/topic/gpt", chatMessage);
 
-        return message;
     }
 
     @MessageMapping("/chat.sendMessage")
