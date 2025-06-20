@@ -3,6 +3,7 @@ package me.shinsunyoung.backend.StompWebSocket.Gpt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -17,6 +18,8 @@ public class GPTService {
 
     //json문자열 <-> 자바객체, json객체
     private final ObjectMapper mapper = new ObjectMapper();
+    @Value("${spring.ai.openai.api-key}")
+    private String apiKey;
 
     public String gptMessage(String message) throws Exception{
 
@@ -28,7 +31,7 @@ public class GPTService {
         //http 요청 작성
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.openai.com/v1/responses"))
-                .header("Authorization","Bearer ")
+                .header("Authorization","Bearer " + apiKey)
                 .header("Content-Type","application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(requestBody))) //본문 삽입
                 .build();
