@@ -21,6 +21,12 @@
 * 페이징 처리를 통한 Network & UX 이점 보장 
 ### 6월 25일
 * Spring Security를 활용한, 기초 웹 보안 설정 및 필터 시스템 구축 
-* AccessToken & RefreshToken 적용을 통한 기초 인증&인가 시스템 완성 
+* AccessToken & RefreshToken 적용을 통한 기초 인증&인가 시스템 완성
+### 6월 26일 
+* OAuth2.0을 통한 카카오&구글 로그인 구현
+* Prometheus & Grafana를 통한 모니터링 
+### 6월 27일 
+* ELK를 통한 로그 수집기 구현 
+* AOP 관심사 분리
 
 

@@ -13,7 +13,8 @@ import org.springframework.stereotype.Component;
 public class LogAspect {
 
     // AOP를 적용할 클래스
-    @Pointcut("execution(* me.shinsunyoung.backend.Board.Service..*(..))")
+    @Pointcut("execution(* me.shinsunyoung.backend.Board.Service..*(..))" +
+                "me.shinsunyoung.backend.Board.Controller")
     public void method(){}
 
     // PointCut
