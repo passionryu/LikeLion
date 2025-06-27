@@ -1,3 +1,22 @@
 Data/volumes/mysql-data/mysql.sock
 *.sock
 Data/volumes/mysql-data/*
+
+# Logs
+logs/
+*.log
+
+# Elasticsearch data
+monitoring/http/volumes/esdata/
+*.cfe
+*.cfs
+*.si
+
+# MySQL data
+Data/volumes/mysql-data/
+*.sock
+
+# Build and temp files
+build/
+.idea/
+*.tmp

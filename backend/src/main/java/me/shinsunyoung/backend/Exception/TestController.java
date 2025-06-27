@@ -13,4 +13,5 @@ public class TestController {
     public ResponseEntity<ErrorResponse> test(){
         throw new RuntimeException("테스트 중입니다.");
     }
+
 }
