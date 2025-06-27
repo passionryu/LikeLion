@@ -1,0 +1,66 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1537.v66038d35fc76">
+  <actions>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@2.2255.v56a_15e805f12"/>
+    <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@2.2255.v56a_15e805f12">
+      <jobProperties/>
+      <triggers/>
+      <parameters/>
+      <options/>
+    </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
+  </actions>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@4117.vc0f3c515a_a_a_0">
+    <script>pipeline {
+    agent any
+
+    environment {
+        PROJECT_DIR = &apos;/var/jenkins_home/workspace/backend5_Test_local/backend&apos;  // 백앤드 서버 프로젝트 폴더
+        COMPOSE_FILE = &apos;docker-compose.backend.yml&apos;
+
+    }
+
+    stages {
+
+          stage(&apos;Cleanup Containers&apos;) {
+            steps {
+                dir(&quot;${PROJECT_DIR}&quot;) {
+                    sh &quot;docker-compose -f ${COMPOSE_FILE} down&quot;
+                }
+             }
+          }
+
+
+        stage(&apos;Build&apos;) {
+          steps {
+            dir(&quot;${PROJECT_DIR}&quot;) {
+              sh &apos;chmod +x gradlew&apos;
+              sh &apos;./gradlew clean build -x test&apos;
+            }
+          }
+        }
+
+
+        stage(&apos;Compose Up&apos;) {
+          steps {
+            dir(&quot;${PROJECT_DIR}&quot;) {
+              sh &quot;docker-compose -f ${COMPOSE_FILE} up -d --build&quot;
+            }
+          }
+        }
+
+        stage(&apos;Restart Nginx&apos;) {
+          steps {
+            sh &apos;docker restart nginx || true&apos;
+          }
+        }
+
+      }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

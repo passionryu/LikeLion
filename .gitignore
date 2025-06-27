@@ -1,0 +1,3 @@
+Data/volumes/mysql-data/mysql.sock
+*.sock
+Data/volumes/mysql-data/*
