@@ -1,10 +1,7 @@
 package me.shinsunyoung.backend.Board.Elasticsearch.Service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchAllQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.PrefixQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.*;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
@@ -29,8 +26,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BoardEsService {
 
+    /* Elasticsearch REST API를 타입 안전하게 호출 */
     private final ElasticsearchClient client;
-
     private final BoardEsRepository repository;
 
     // 데이터 저장 메서드
@@ -45,24 +42,39 @@ public class BoardEsService {
 
     // 검색 키워드와 페이지 번호와 페이지 크기를 받아서 엘라스틱서치에서 검색하는 메서드
     // 검색된 정보와 페이징 정보도 함께 반환하도록 하기 위해 page 객체를 사용하여 반환
+    /**
+     * 검색 메서드
+     *
+     * @param keyword 검색 키워드
+     * @param page
+     * @param size
+     * @return
+     */
     public Page<BoardEsDocument> search(String keyword, int page, int size) {
 
+        // ======================= Try =========================
         try {
+
+            /**
+             * from : 건너 뛸 문서의 수
+             * page : 요청한 페이지 번호 : 현재 페이지 =0
+             * size : 한 페이지에서 보여 줄 문서의 수
+             */
             int from = page * size;
 
-            // 엘라스틱 서치에서 사용할 검색조건을 담는 객체
-            Query query;
+            /* 엘라스틱 서치에서 사용할 검색 조건을 담는 객체 */
+            Query query; // 쿼리 객체의 특징은?
 
-            // 검색어가 없으면 모든 문서를 검색하는 MatchAll 쿼리
+            /* 검색어가 없을 때, MatchAllQuery함수 -> 모든 문서 검색 */
             if (keyword == null || keyword.isBlank()) {
+                /* MatchAllQuery는 엘라스틱 서치에서 조건 없이 모든 문서를 검색할 때 사용하는 쿼리 */
                 query = MatchAllQuery.of(m -> m)._toQuery(); // 전체 문서를 가져오는 쿼리를 생성하는 람다 함수
-                // MatchAllQuery는 엘라스틱 서치에서 조건 없이 모든 문서를 검색할 때 사용하는 쿼리
             }
-            // 검색어가 있을 때
+            /* 검색어가 있을 떄, */
             else {
-                // boolquery는 복수 조건을 조합할 때 사용하는 쿼리
-                // 이 쿼리 안에서 여러개의 조건을 나열
-                // 예를 들어서 백엔드라는 키워드가 들어왔을 때 이 백엔드 키워드를 어떻게 부넉해서 데이터를 보여줄 것인가를 작성
+                /**
+                 * BoolQuery는 복수의 검색 조건을 조합할 때 사용하는 쿼리
+                 */
                 query = BoolQuery.of(b -> {
 
                     // PrefixQuery는 해당 필드가 특정 단어로 시작하는지 검사하는 쿼리
@@ -73,17 +85,24 @@ public class BoardEsService {
                      * should
                      * must_not
                      * filter
-                     *
                      */
                     b.should(PrefixQuery.of(p -> p.field("title").value(keyword))._toQuery());
                     b.should(PrefixQuery.of(p -> p.field("content").value(keyword))._toQuery());
+
+                    // fuzziness: "AUTO"는  오타 허용 검색 기능을 자동으로 켜주는 설정 -> 유사도 계산을 매번 수행하기 때문에 느림
+                    //짧은 키워드에는 사용 xxx
+                    //오타 허용 (오타허용은 match만 가능 )
+                    if (keyword.length()>=3){
+                        b.should(MatchQuery.of(m ->m.field("title").query(keyword).fuzziness("AUTO"))._toQuery());
+                        b.should(MatchQuery.of(m ->m.field("content").query(keyword).fuzziness("AUTO"))._toQuery());
+                    }
 
                     return b;
                 })._toQuery();
             }
 
-            //  SearchRequest는 엘라스틱 서치에서 검색을 하기 위한 검색 요청 객체
-            // 인덱스 명 , 페이징 정보, ㄴ쿼리를 포함한 검색 요청
+            // SearchRequest는 엘라스틱 서치에서 검색을 하기 위한 검색 요청 객체
+            // 인덱스 명 , 페이징 정보, 쿼리를 포함한 검색 요청
             SearchRequest request = SearchRequest.of(s -> s
                     .index("board-index")
                     .from(from)
@@ -93,7 +112,7 @@ public class BoardEsService {
 
             // SerachResponse는 엘라스틱서치의 검색 결과를 담고있는 응답 객체
             SearchResponse<BoardEsDocument> response =
-                    // 엘라스틱 서치의 명령을 전달하는 자바 API 검색 요청ㅇ르 담아서 응답 객체로 반환
+                    // 엘라스틱 서치의 명령을 전달하는 자바 API 검색 요청으르 담아서 응답 객체로 반환
                     client.search(request, BoardEsDocument.class);
 
             // 위 응답 객체에서 받은 검색 결과 중 문서만 추출해서 리스트로 만듬
@@ -110,12 +129,20 @@ public class BoardEsService {
             // PageImpl 객체를 사용해서 Spring 에서 사용할 수 있는 Page 객체로 반환
             return new PageImpl<>(content, PageRequest.of(page, size), total);
 
-        } catch (IOException e) {
+        }
+        // ======================= Try =========================
+        catch (IOException e) {
             log.error("검색 오류 : {}", e.getMessage());
             throw new RuntimeException("검색 중 오류 발생", e);
         }
     }
 
+    /**
+     * 대량 색인 : 1000개씩 나눠서 Elasticsearch에 색인
+     *
+     * @param documents
+     * @throws IOException
+     */
     public void bulkIndexInsert(List<BoardEsDocument> documents) throws IOException {
 
         int batchSize =1000;
