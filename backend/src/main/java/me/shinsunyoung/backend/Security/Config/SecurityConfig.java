@@ -53,7 +53,7 @@ public class SecurityConfig {
                                 "/css/**", "/fetchWithAuth.js","/js/**", "/images/**",
                                 "/.well-known/**").permitAll() // 정적 리소스 누구나 접근
                         .requestMatchers("/boards/**",  "/boards", "/api/auth/**").permitAll()
-                        .requestMatchers("/api/**","/boards","/boards/**","/api/comments","/api/comments/**").authenticated()
+                        .requestMatchers("/api/**","/boards","/boards/**","/api/comments","/api/comments/**").permitAll()
 
                                 //인증필요
                                 .requestMatchers(

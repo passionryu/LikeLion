@@ -5,8 +5,10 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.shinsunyoung.backend.Board.DTO.BoardDTO;
+import me.shinsunyoung.backend.Board.Elasticsearch.DTO.BoardEsDocument;
+import me.shinsunyoung.backend.Board.Elasticsearch.Service.BoardEsService;
 import me.shinsunyoung.backend.Board.Entity.Board;
-import me.shinsunyoung.backend.Board.Repository.BatchRepositoty;
+import me.shinsunyoung.backend.Board.Repository.BatchRepository;
 import me.shinsunyoung.backend.Board.Repository.BoardRepository;
 import me.shinsunyoung.backend.User.Entity.User;
 import me.shinsunyoung.backend.User.Repository.UserRepository;
@@ -15,26 +17,26 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BoardService {
-
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
+    private final BatchRepository batchRepository;
+    private final EntityManager  em;
 
-    private final BatchRepositoty batchRepositoty;
+    // 엘라스틱 서치 Service
+    private final BoardEsService boardEsService;
 
-    private final EntityManager em;
 
     /** 글 등록 **/
     @Transactional
     public BoardDTO createBoard(BoardDTO boardDTO) {
-
 
 
         // userId(PK)를 이용해서 User 조회
@@ -53,11 +55,22 @@ public class BoardService {
         // 연관관계 매핑!
         board.setUser(user);
         Board saved = boardRepository.save(board);
+        // MYsql 저장 완료
 
+        // 엘라스틱 서치에 저장 시작
+        BoardEsDocument doc = BoardEsDocument.builder()
+                .id(String.valueOf(board.getId()))
+                .title(board.getTitle())
+                .content(board.getContent())
+                .userid(board.getUser().getId())
+                .username(board.getUser().getUserProfile().getUsername())
+                .created_date(String.valueOf(board.getCreated_date()))
+                .updated_date(String.valueOf(board.getUpdated_date()))
+                .build();
+        boardEsService.save(doc);
 
         return toDTO(saved);
     }
-
 
     /** 게시글 상세 조회 **/
     @Transactional(readOnly = true)
@@ -71,17 +84,23 @@ public class BoardService {
     @Transactional
     public BoardDTO updateBoard(Long boardId, BoardDTO dto) {
 
-        long start = System.currentTimeMillis();
-        System.out.println("글 수정 메서드 시작");
-
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new IllegalArgumentException("게시글 없음: " + boardId));
         board.setTitle(dto.getTitle());
         board.setContent(dto.getContent());
         boardRepository.save(board);
 
-        long end = System.currentTimeMillis();
-        System.out.println("글 수정 메서드 완료 시간 = " +(end-start));
+        // 엘라스틱 서치에 저장 시작
+        BoardEsDocument doc = BoardEsDocument.builder()
+                .id(String.valueOf(board.getId()))
+                .title(board.getTitle())
+                .content(board.getContent())
+                .userid(board.getUser().getId())
+                .username(board.getUser().getUserProfile().getUsername())
+                .created_date(String.valueOf(board.getCreated_date()))
+                .updated_date(String.valueOf(board.getUpdated_date()))
+                .build();
+        boardEsService.save(doc);
 
         return toDTO(board);
     }
@@ -89,33 +108,23 @@ public class BoardService {
 
     /** 게시글 삭제 **/
     @Transactional
-    public void deleteBoard(Long boardId) {
+    public void deleteBoard(Long userid,Long boardId) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(()-> new IllegalArgumentException("사용자 정보가 없습니다"));
+
+        if (!board.getUser().getId().equals(userid))
+            throw new IllegalArgumentException("삭제 권한이 없습니다.");
+
         if (!boardRepository.existsById(boardId))
             throw new IllegalArgumentException("게시글 없음: " + boardId);
+
+        boardEsService.deleteById(String.valueOf(boardId));
+
         boardRepository.deleteById(boardId);
     }
 
 
-    /** 페이징 적용 전 **/
-    /** 페이징 적용 전 **/
-    /** 페이징 적용 전 **/
-    // 게시글 전체 목록
-    @Transactional(readOnly = true)
-    public List<BoardDTO> getBoardList() {
-        return boardRepository.findAll().stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-    }
-    // 게시글 검색  페이징 아님
-    public List<BoardDTO> searchBoards(String keyword) {
-        return boardRepository.searchKeyword(keyword);
-    }
 
-
-
-
-    /** 페이징 적용 후 **/
-    /** 페이징 적용 후 **/
     /** 페이징 적용 후 **/
     //페이징 전체 목록
     public Page<BoardDTO> getBoards(int page, int size) {
@@ -152,11 +161,12 @@ public class BoardService {
         for (int i = 0; i < boardDTOList.size(); i+=batchsize) { //i는 1000씩 증가
             //전체 데이터를 1000개씩 잘라서 배치리스트에 담습니다.
 
-            int end = Math.min(boardDTOList.size(), i+batchsize); //두개의 숫자중에 작은 숫자를 반환
+            int end = Math.min(boardDTOList.size(), i+batchsize); //두개의 숫자중에 작은 숫자를 반황ㄴ
             List<BoardDTO> batchList = boardDTOList.subList(i, end);
 
             //전체 데이터에서 1000씩 작업을 하는데 마지막 데이터가 1000개가 안될수도있으니
             //Math.min()으로 전체 크기를 넘지 않게 마지막 인덱스를 계산해서 작업합니다.
+
 
             //내가 넣은 데이터만 엘라스틱서치에 동기화하기 위해 uuid 생성
             String batchKey = UUID.randomUUID().toString();
@@ -164,32 +174,46 @@ public class BoardService {
                 dto.setBatchkey(batchKey);
             }
 
+
             // 1. MySQL로 INSERT
-            batchRepositoty.batchInsert(batchList);
+            batchRepository.batchInsert(batchList);
+
+            // 2. Mysql 에 insert 한 데이터를 다시 조회
+            List<BoardDTO> saveBoards = batchRepository.findByBatchKey(batchKey);
+
+            // 3. 엘라스틱 서치용으로 변환
+            List<BoardEsDocument> documents = saveBoards.stream()
+                    .map(BoardEsDocument::from) // DTO를 엘라스틱 서치용 DTO로 변환
+                    .toList();
+
+            try{
+                // 4. 엘라스틱 서치 bulk 인덱싱
+                boardEsService.bulkIndexInsert(documents);
+            } catch (IOException e) {
+                log.error("[BOARD][BATCH] ElasticSearch 벌크 인덱싱 실패 : {}", e.getMessage(), e);
+
+            }
         }
 
         Long end = System.currentTimeMillis();
         log.info("[BOARD][BATCH] 전체 저장 소요 시간(ms): {}", (end - start));
+        log.info("[BOARD][BATCH] 데이터 사이즈 : {}", boardDTOList.size());
     }
 
-    /* JPA를 통한 글쓰기 배치 서비스 */
     @Transactional
     public void boardSaveAll(List<Board> boardList){
-
         long start = System.currentTimeMillis();
 
-        for(int i= 0; i<boardList.size(); i++){
+        for (int i = 0; i<boardList.size(); i++) {
             em.persist(boardList.get(i));
-            if(i%1000 ==0){
+            if (i % 1000 == 0){
                 em.flush();
                 em.clear();
             }
         }
 
         long end = System.currentTimeMillis();
-        System.out.println("JPA Board SaveAll 저장 소요 시간(ms)"+ (end-start));
-
+        System.out.println("JPA Board saveAll 저장 소요 시간(ms): " + (end - start));
     }
-
 
 }

@@ -79,10 +79,10 @@ public class OAuth2UserService extends DefaultOAuth2UserService {
             userid = null;
 
         }
-
-        System.out.println(provider+" 로그인 확인 userid = "+userid);
-        System.out.println(provider+" 로그인 확인 email = "+email);
-        System.out.println(provider+" 로그인 확인 username = "+username);
+//
+//        System.out.println(provider+" 로그인 확인 userid = "+userid);
+//        System.out.println(provider+" 로그인 확인 email = "+email);
+//        System.out.println(provider+" 로그인 확인 username = "+username);
 
         // 회원 정보가 DB에 존재하는지 확인
         User user = userRepository.findByUserid(userid)

@@ -21,19 +21,15 @@ import java.util.List;
 @RequestMapping("/boards")
 @RequiredArgsConstructor
 public class BoardController {
-
     private final BoardService boardService;
-    private final UserRepository userRepository;
 
 
     /** 글 작성 **/
     @PostMapping
     public ResponseEntity<BoardDTO> createBoard(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-                                                @RequestBody BoardDTO boardDTO){
+            @RequestBody BoardDTO boardDTO)  {
         Long id = customUserDetails.getId();
-        // System.out.println("boardDTO 값 "+new ObjectMapper();
-                //.writeValueAsString(boardDTO));
         boardDTO.setUser_id(id);
         BoardDTO created = boardService.createBoard(boardDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -41,42 +37,36 @@ public class BoardController {
 
     /** 게시글 상세 조회 **/
     @GetMapping("/{id}")
-    public ResponseEntity<BoardDTO> getBoardDetail(@AuthenticationPrincipal CustomUserDetails customUserDetails,
-                                                   @PathVariable Long id) {
-        Long userid = customUserDetails.getId();
-        if(userRepository.findById(userid).isEmpty()){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
+    public ResponseEntity<BoardDTO> getBoardDetail(@PathVariable Long id) {
         return ResponseEntity.ok(boardService.getBoardDetail(id));
     }
 
     /** 게시글 수정 **/
-    @PutMapping("/my")
-    public ResponseEntity<BoardDTO> updateBoard(@AuthenticationPrincipal CustomUserDetails customUserDetails,
-                                                @RequestBody BoardDTO boardDTO) {
-        Long id = customUserDetails.getId();
-        boardDTO.setUser_id(id);
-        return ResponseEntity.ok(boardService.updateBoard(id, boardDTO));
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateBoard(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long id,
+            @RequestBody BoardDTO boardDTO) {
+        Long userid = customUserDetails.getId();
+        if (userid.equals(boardDTO.getUser_id())) {
+            //내가 쓴글이면 수정
+            return ResponseEntity.ok(boardService.updateBoard(id, boardDTO));
+        }
+        else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("수정 권한이 없습니다");
+        }
     }
 
     /** 게시글 삭제 **/
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBoard(@PathVariable Long id) {
-        boardService.deleteBoard(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteBoard(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long id) {
+        Long userid = customUserDetails.getId();
+        boardService.deleteBoard(userid,id);
+        return ResponseEntity.ok("게시글이 성공적으로 삭제되었습니다.");
     }
 
-//    //페이징 적용 전
-//    @GetMapping
-//    public ResponseEntity<List<BoardDTO>> getBoardList() {
-//        return ResponseEntity.ok(boardService.getBoardList());
-//    }
-//
-//    //페이징 적용 전
-//    @GetMapping("/search")
-//    public List<BoardDTO> search(@RequestParam String keyword) {
-//        return boardService.searchBoards(keyword);
-//    }
 
     /** 페이징 적용 **/
     //페이징 적용 전체 목록보기
